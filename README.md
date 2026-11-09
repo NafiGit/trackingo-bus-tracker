@@ -85,6 +85,28 @@ Bhattarahalli          11:00 PM   11:28 PM   +28m    -
 Hoskote                11:05 PM   11:33 PM   +28m    -
 ```
 
+## Website
+
+There is also a website version, live at
+https://trackingo-bus-tracker.vercel.app/
+
+Open it and it runs in demo mode on the bundled fictional trip. Paste
+your own tracking key and it switches to live mode, polling the same
+way the tracker page does. The browser never talks to Trackingo
+directly: the key goes to a small proxy (`web/api/live.py`) that calls
+the Trackingo endpoints server-side, so there is no CORS problem and
+the key never appears in a URL. The proxy never stores or logs the key,
+and it strips phone, contact, email, and ticket fields from journey
+details before returning them.
+
+The site files live in `web/` in this repo. To deploy it to Vercel:
+
+```bash
+python3 deploy/vercel_deploy.py deploy
+```
+
+See `AGENTS.md` for how the site and the deploy work.
+
 ## Layout
 
 ```
