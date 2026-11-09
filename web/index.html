@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Trackingo Bus Tracker — your bus is late. Now you can prove it.</title>
+<meta name="description" content="Live-track any RedBus / Trackingo bus from the tracker page's own API. GPS position, speed, ETA for every stop. No app, no login, just your key.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;700;800;900&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<header class="nav">
+  <a class="brand" href="#">🚌&nbsp;TRACKINGO BUS TRACKER</a>
+  <nav>
+    <a href="#tracker">Live tracker</a>
+    <a href="#how">How it works</a>
+    <a href="#api">The API</a>
+    <a href="#key">Get your key</a>
+    <a class="btn btn-small" href="https://github.com/NafiGit/trackingo-bus-tracker" target="_blank" rel="noopener">GitHub ↗</a>
+  </nav>
+</header>
+
+<main>
+  <!-- HERO -->
+  <section class="hero">
+    <p class="kicker">✦ LIVE BUS TRACKING, NO APP REQUIRED</p>
+    <h1>Your bus is late.<br><span class="hl">Now you can prove it.</span></h1>
+    <p class="lede">When an operator sends you a live-tracking link, the page quietly polls its own API every 20 seconds for the bus's real GPS position. This site asks that same API — and shows you the position, the speed, and the ETA for every stop.</p>
+    <p class="lede">No app to install. No login. Paste your key and watch your bus move.</p>
+    <div class="cta-row">
+      <a class="btn btn-big" href="#tracker">Track my bus ↓</a>
+      <button class="btn btn-big btn-ghost" id="hero-demo" type="button">Try the demo — no key needed</button>
+    </div>
+    <p class="fine">Free &amp; open source (MIT). Your key never leaves your browser except to fetch your own bus — it is never stored, never logged.</p>
+  </section>
+
+  <!-- LIVE TRACKER -->
+  <section id="tracker" class="panel">
+    <div class="panel-head">
+      <h2>🔴 Live tracker</h2>
+      <span id="mode-badge" class="badge">Idle</span>
+    </div>
+
+    <div class="key-row">
+      <input id="key-input" type="text" placeholder="Paste your Trackingo key here" autocomplete="off" spellcheck="false" aria-label="Trackingo key">
+      <button class="btn" id="track-btn" type="button">Track my bus</button>
+      <button class="btn btn-ghost" id="demo-btn" type="button">Demo</button>
+      <button class="btn btn-ghost" id="stop-btn" type="button" disabled>Stop</button>
+    </div>
+    <p class="hint">Your key is the key in your own tracking link. It lives only in this page — nothing is saved, nothing is logged. Journey details may include booking/contact fields, so the proxy strips those before anything reaches your screen.</p>
+
+    <div id="error-box" class="error hidden"></div>
+
+    <div id="live-card" class="live-card hidden">
+      <div class="live-top">
+        <div>
+          <p class="label">BUS IS AT</p>
+          <p id="live-location" class="big-loc">—</p>
+          <p id="live-coords" class="coords">—</p>
+        </div>
+        <span id="live-state" class="state-pill">—</span>
+      </div>
+      <div class="stat-grid">
+        <div class="stat"><p class="label">SPEED</p><p id="live-speed" class="stat-val">—</p></div>
+        <div class="stat"><p class="label">GPS UPDATED</p><p id="live-time" class="stat-val">—</p></div>
+        <div class="stat"><p class="label">RUNNING LATE BY</p><p id="live-delay" class="stat-val">—</p></div>
+        <div class="stat"><p class="label">NEXT STOP</p><p id="live-next" class="stat-val">—</p></div>
+      </div>
+      <p id="journey-line" class="journey-line hidden"></p>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Stop</th><th>Scheduled</th><th>Expected</th><th>Delay</th><th>Arrived</th></tr></thead>
+          <tbody id="stops-body"></tbody>
+        </table>
+      </div>
+      <p class="live-foot"><span id="last-updated">Not updated yet</span> · <span id="countdown">Polls every 20s, like the tracker page</span></p>
+    </div>
+  </section>
+
+  <!-- HOW IT WORKS -->
+  <section id="how" class="section">
+    <p class="kicker">✦ HOW IT WORKS</p>
+    <h2>Three hops. That's the whole trick.</h2>
+    <div class="steps">
+      <div class="step"><p class="step-n">1</p><h3>Your operator sends a link</h3><p>A RedBus booking or the operator's message includes a live-tracking link. It redirects to a Trackingo page: a map and a stop timeline.</p></div>
+      <div class="step"><p class="step-n">2</p><h3>The page polls its own API</h3><p>That page asks Trackingo's <code>eta_map</code> endpoint about every 20 seconds for the bus's GPS position, speed and ETAs.</p></div>
+      <div class="step"><p class="step-n">3</p><h3>This site asks the same API</h3><p>A tiny serverless proxy calls those same two endpoints with your key and hands the JSON back to this page. No scraping, no login.</p></div>
+    </div>
+    <figure class="diagram">
+      <img src="images/how-it-works.png" alt="Diagram: tracking link opens the Trackingo page, which calls its own API, which this site also calls">
+      <figcaption>Link → Trackingo page → its own API → this site.</figcaption>
+    </figure>
+  </section>
+
+  <!-- LESSON -->
+  <section class="callout">
+    <h2>Trust the GPS fix,<br>not the status line.</h2>
+    <p>RedBus's public status is just text — <em>“Next: K R Puram”</em> — and it is easy to read that as “the bus already passed ITI Gate.” It is not a position. The API <em>is</em> GPS: latitude, longitude, speed, a GPS timestamp, a location description.</p>
+    <p>If a stop's <code>arrival_time</code> is empty, the bus has not reached that stop yet, however the status text reads. In the demo below, the bus sits at 0 km/h, idle, between ITI Gate and K R Puram, 28 minutes late — it has not reached K R Puram or TC Palya.</p>
+    <figure class="diagram">
+      <img src="images/example-timeline.png" alt="Timeline diagram: scheduled vs expected times per stop, bus idle at 0 km/h between ITI Gate and K R Puram, 28 minutes late">
+      <figcaption>Scheduled vs expected, stop by stop. Empty arrival time = not there yet.</figcaption>
+    </figure>
+  </section>
+
+  <!-- API -->
+  <section id="api" class="section">
+    <p class="kicker">✦ THE API, IN THE OPEN</p>
+    <h2>Two endpoints. Found in the network tab.</h2>
+    <p>These were found by watching the tracker page's own network requests — they are the site's <strong>internal endpoints, not a published developer API</strong>. They worked without a login, they may change without notice, and there is no public documentation for them. Use them for your own tracking link, at your own risk, and respect the site's terms.</p>
+    <pre><code>GET https://bus.trackingo.in/api/live/journey_details?key=&lt;KEY&gt;&amp;zoom_position=12&amp;platform=mobile
+GET https://bus.trackingo.in/api/live/eta_map?current_status=true&amp;key=&lt;KEY&gt;</code></pre>
+    <figure class="diagram">
+      <img src="images/what-the-api-returns.png" alt="Diagram breaking down the eta_map response fields">
+      <figcaption>What <code>eta_map</code> returns, field by field.</figcaption>
+    </figure>
+    <table class="fields">
+      <thead><tr><th>Field</th><th>Meaning</th></tr></thead>
+      <tbody>
+        <tr><td><code>current_status_details.lat_long</code></td><td>[latitude, longitude]</td></tr>
+        <tr><td><code>current_status_details.details.speed</code></td><td>Speed in km/h</td></tr>
+        <tr><td><code>current_status_details.details.timestamp</code></td><td>GPS update time</td></tr>
+        <tr><td><code>current_status_details.details.location</code></td><td>Location description</td></tr>
+        <tr><td><code>current_status_details.details.hstate</code></td><td>Vehicle state, e.g. <code>idle</code>, <code>moving</code></td></tr>
+        <tr><td><code>eta_map_data</code></td><td>One row per stop: scheduled, expected, <code>arrival_time</code>, <code>departure_time</code>, status</td></tr>
+        <tr><td><code>distance_details</code></td><td>Distance information</td></tr>
+      </tbody>
+    </table>
+    <p>Prefer the command line? The same logic ships as a Python CLI: <a href="https://github.com/NafiGit/trackingo-bus-tracker">github.com/NafiGit/trackingo-bus-tracker</a></p>
+  </section>
+
+  <!-- GET YOUR KEY -->
+  <section id="key" class="section">
+    <p class="kicker">✦ GET YOUR KEY</p>
+    <h2>Where's my key?</h2>
+    <p>It is the key in your own tracking link — the short link the operator sends you redirects to <code>bus.trackingo.in/customer/track_vehicle?&lt;KEY&gt;</code>. That key is yours: do not share it, and do not commit it. This site contains only the placeholder <code>YOUR_KEY</code> and clearly labelled example data.</p>
+    <p class="fine">Demo data is fictional — made-up times, stops and positions, to show the response shape. Live data is yours and yours alone.</p>
+  </section>
+</main>
+
+<footer>
+  <p><strong>Trackingo Bus Tracker</strong> — open source (MIT). Born from one missed bus.</p>
+  <p><a href="https://github.com/NafiGit/trackingo-bus-tracker">GitHub</a> · Built with the tracker page's own API · No key is ever stored</p>
+</footer>
+
+<script src="app.js"></script>
+</body>
+</html>
